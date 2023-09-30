@@ -2,47 +2,23 @@ mod utils;
 
 use wasm_bindgen::prelude::*;
 use js_sys::Uint8Array;
-// extern crate image;
 use image::{ImageBuffer, Rgba};
-
-#[wasm_bindgen]
-extern "C" {
-    fn alert(s: &str);
-}
-
-#[wasm_bindgen]
-pub fn greet() {
-    alert("Hello, seam-rs!");
-}
 
 #[wasm_bindgen]
 pub fn process_image(data: JsValue, width: usize, height: usize, iterations: usize) -> Uint8Array {
     let data_u8_array: Uint8Array = Uint8Array::from(data);
-    // let length = data_u8_array.length() as usize;
     let data_vec: Vec<u8> = data_u8_array.to_vec();
     let img = ImageBuffer::<Rgba<u8>, Vec<u8>>::from_vec(width as u32, height as u32, data_vec).unwrap();
     let final_img = seam_carve(img, iterations);
     let final_data = final_img.into_raw();
     let final_data_u8_array = Uint8Array::from(final_data.as_slice());
     return final_data_u8_array;
-    // let raw_data = img.into_raw();
-    // let data_u8_array = Uint8Array::from(raw_data.as_slice());
-    // return data_u8_array;
 }
 
 #[derive(Clone)]
 struct EnergyData {
     energy: i64,
-    previous_x: usize,
 }
-
-struct PixelData {
-    r: u16,
-    g: u16,
-    b: u16,
-}
-
-type Seam = Vec<(usize, usize)>;
 
 fn compute_energies(energies: &mut Vec<Vec<EnergyData>>, img: &ImageBuffer<Rgba<u8>, Vec<u8>>) {
     let (width, height) = img.dimensions();
@@ -112,13 +88,7 @@ fn find_seam(energies: &Vec<Vec<EnergyData>>) -> Vec<usize> {
 
 fn remove_seam(img: &ImageBuffer<Rgba<u8>, Vec<u8>>, seam: &Vec<usize>) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
     let (width, height) = img.dimensions();
-    // alert(&format!("width: {}, height: {}", width, height));
     let mut new_img = ImageBuffer::<Rgba<u8>, Vec<u8>>::new(width - 1, height);
-    // if seam.len() == height as usize {
-    //     alert(&format!("seam: {:?}", seam));
-    // } else {
-    //     alert(&format!("not same seam: {}, {} ||| {:?}", seam.len(), height, seam));
-    // }
     for y in 0..height {
         let mut curr_x = 0;
         for x in 0..width {
@@ -134,13 +104,10 @@ fn remove_seam(img: &ImageBuffer<Rgba<u8>, Vec<u8>>, seam: &Vec<usize>) -> Image
 fn seam_carve(mut img: ImageBuffer<Rgba<u8>, Vec<u8>>, iterations: usize) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
     for _ in 0..iterations {
         let (width, height) = img.dimensions();
-        let mut energies = vec![vec![EnergyData { energy: 0, previous_x: 0 }; width as usize]; height as usize];
+        let mut energies = vec![vec![EnergyData { energy: 0 }; width as usize]; height as usize];
         compute_energies(&mut energies, &img);
         let seam = find_seam(&energies);
-        // remove_seam(&img, &seam);
         img = remove_seam(&img, &seam);
     }
-    // img
-    // return back img and its new dimensions
     img
 }
