@@ -22,8 +22,13 @@ function rawImageDataToDataUrl(data, width, height) {
 function click_handler() {
   const main_image = document.getElementById('main_image');
   const output_image = document.querySelector('#output_image');
+  const iter_input = document.querySelector('#iter_count');
   output_image.src = '';
-  const iterations = 250;
+  const iterations = parseInt(iter_input.value);
+  if (isNaN(iterations)) {
+    alert('Invalid iteration count');
+    return;
+  }
   const imageData = getImageData(main_image);
   const output = wasm.process_image(imageData, main_image.width, main_image.height, iterations);
   const dataUrl = rawImageDataToDataUrl(
@@ -33,6 +38,18 @@ function click_handler() {
   );
   output_image.src = dataUrl;
 }
+
+const file_upload = document.getElementById('file_input');
+file_upload.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const image = document.getElementById('main_image');
+    image.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  document.getElementById('output_image').src = '';
+});
 
 const button = document.getElementById('run');
 button.addEventListener('click', click_handler);
