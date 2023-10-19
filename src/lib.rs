@@ -77,14 +77,13 @@ fn find_seam(energies: &Vec<Vec<EnergyData>>) -> Vec<usize> {
     let mut seam_energies = vec![vec![0; width]; height];
     let mut choices = vec![vec![0; width]; height];
 
-    for x in 0..width {
-        seam_energies[0][x] = energies[0][x].energy;
-    }
+    seam_energies[0] = energies[0].iter().map(|e| e.energy).collect();
 
     for y in 1..height {
         for x in 0..width {
-            let left_x = if x == 0 { width - 1 } else { x - 1 }; // support wrap around
-            let right_x = if x == width - 1 { 0 } else { x + 1 }; // support wrap around
+            // support wrap around for left and right edges
+            let left_x = if x == 0 { width - 1 } else { x - 1 };
+            let right_x = if x == width - 1 { 0 } else { x + 1 };
             let neighbors = [left_x, x, right_x];
             let (chosen_idx, min_energy) = neighbors
                 .iter()
