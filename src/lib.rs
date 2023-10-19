@@ -3,7 +3,12 @@ mod utils;
 use wasm_bindgen::prelude::*;
 use js_sys::Uint8Array;
 use image::{ImageBuffer, Rgba};
+// use web_sys::console; // for debugging
 
+#[derive(Clone)]
+struct EnergyData {
+    energy: i64,
+}
 #[wasm_bindgen]
 pub fn process_image(data: JsValue, width: usize, height: usize, iterations: usize) -> Uint8Array {
     let data_u8_array: Uint8Array = Uint8Array::from(data);
@@ -15,9 +20,15 @@ pub fn process_image(data: JsValue, width: usize, height: usize, iterations: usi
     return final_data_u8_array;
 }
 
-#[derive(Clone)]
-struct EnergyData {
-    energy: i64,
+#[wasm_bindgen]
+pub fn mark_seam(data: JsValue, width: usize, height: usize) -> Uint8Array {
+    let data_u8_array: Uint8Array = Uint8Array::from(data);
+    let data_vec: Vec<u8> = data_u8_array.to_vec();
+    let img = ImageBuffer::<Rgba<u8>, Vec<u8>>::from_vec(width as u32, height as u32, data_vec).unwrap();
+    let final_img = handle_mark_seam(img);
+    let final_data = final_img.into_raw();
+    let final_data_u8_array = Uint8Array::from(final_data.as_slice());
+    return final_data_u8_array;
 }
 
 fn compute_energies(energies: &mut Vec<Vec<EnergyData>>, img: &ImageBuffer<Rgba<u8>, Vec<u8>>) {
@@ -67,9 +78,10 @@ fn find_seam(energies: &Vec<Vec<EnergyData>>) -> Vec<usize> {
             let left_x = if x == 0 { width - 1 } else { x - 1 };
             let right_x = if x == width - 1 { 0 } else { x + 1 };
             let neighbors = [left_x, x, right_x];
-            let (chosen, min_energy) = neighbors.iter().map(|&x| seam_energies[y - 1][x]).enumerate().min_by_key(|&(_, e)| e).unwrap();
+            let (chosen_idx, min_energy) = neighbors.iter().map(|&x| seam_energies[y - 1][x]).enumerate().min_by_key(|&(_, e)| e).unwrap();
             seam_energies[y][x] = energies[y][x].energy + min_energy;
-            choices[y][x] = chosen;
+            choices[y][x] = neighbors[chosen_idx];
+
         }
     }
 
@@ -108,6 +120,17 @@ fn seam_carve(mut img: ImageBuffer<Rgba<u8>, Vec<u8>>, iterations: usize) -> Ima
         compute_energies(&mut energies, &img);
         let seam = find_seam(&energies);
         img = remove_seam(&img, &seam);
+    }
+    img
+}
+
+fn handle_mark_seam(mut img: ImageBuffer<Rgba<u8>, Vec<u8>>) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
+    let (width, height) = img.dimensions();
+    let mut energies = vec![vec![EnergyData { energy: 0 }; width as usize]; height as usize];
+    compute_energies(&mut energies, &img);
+    let seam = find_seam(&energies);
+    for y in 0..height {
+        img.put_pixel(seam[y as usize] as u32, y, Rgba([255, 0, 0, 255]));
     }
     img
 }
