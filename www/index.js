@@ -24,11 +24,12 @@ function click_handler() {
   const output_image = document.querySelector('#output_image');
   const iter_input = document.querySelector('#iter_count');
   output_image.src = '';
-  const iterations = parseInt(iter_input.value);
+  let iterations = parseInt(iter_input.value);
   if (isNaN(iterations)) {
     alert('Invalid iteration count');
     return;
   }
+  iterations = Math.min(iterations, main_image.width);
   const imageData = getImageData(main_image);
   const output = wasm.process_image(imageData, main_image.width, main_image.height, iterations);
   const dataUrl = rawImageDataToDataUrl(
